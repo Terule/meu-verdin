@@ -20,7 +20,7 @@
     ],
     "paths": {
       "@/*": ["./src/*"],
-      "@generated/*": ["./generated/*"]
+      "@prisma/client": ["./generated/prisma/client"],
     }
   },
   "include": [
