@@ -4,11 +4,11 @@ Sistema de gestão financeira pessoal focado em Orçado vs. Realizado com sugest
 
 ## 🛠 Tech Stack
 
-Este projeto utiliza uma arquitetura Next.js Fullstack moderna e performática com Bun.
+Este projeto utiliza uma arquitetura Next.js Fullstack moderna e performática com Node.js + npm.
 
 | Camada | Tecnologia |
 | :--- | :--- |
-| **Runtime** | Bun (Substitui Node.js/npm) |
+| **Runtime** | Node.js + npm |
 | **Fullstack** | Next.js 15 (App Router) |
 | **Linguagem** | TypeScript |
 | **Estilização** | Tailwind CSS + Shadcn/ui |
@@ -24,7 +24,7 @@ Este projeto utiliza uma arquitetura Next.js Fullstack moderna e performática c
 
 ### Pré-requisitos
 
-- **Bun** instalado (v1.0+).
+- **Node.js** instalado (v20+ recomendado, com npm).
 - Acesso à VPS (SSH ou portas liberadas) para conexão com Banco de Dados.
 
 ### Passo a Passo
@@ -39,7 +39,7 @@ Este projeto utiliza uma arquitetura Next.js Fullstack moderna e performática c
 2. **Instale as dependências:**
 
 	```bash
-	bun install
+	npm install
 	```
 
 3. **Conecte aos Serviços Remotos:**
@@ -55,28 +55,70 @@ Este projeto utiliza uma arquitetura Next.js Fullstack moderna e performática c
 	- Atualize a `DATABASE_URL` e as chaves do Better Auth / MinIO.
 
 5. **Gere o Cliente do Prisma:**
-	Este passo é crucial para criar o cliente na pasta `generated/prisma` que o Bun utiliza.
+	Este passo é crucial para criar o cliente na pasta `generated/prisma`.
 
 	```bash
-	bun run db:generate
+	npm run db:generate
 	```
 
 6. **Rode as Migrations (Se necessário):**
 
 	```bash
 	# If you use migrations locally run the Prisma CLI directly:
-	bun prisma migrate dev
+	npx prisma migrate dev
 
 	# Or push the schema using the configured script:
-	bun run db:push
+	npm run db:push
 	```
 
 7. **Inicie o projeto:**
 
 	```bash
-	bun run dev
+	npm run dev
 	```
 	O App rodará em http://localhost:3000
+
+## 🐳 Rodar com Docker + PostgreSQL
+
+Este projeto também pode ser executado totalmente com Docker Compose (app + banco PostgreSQL).
+
+### Pré-requisitos
+
+- Docker Desktop (ou Docker Engine + Compose plugin) instalado.
+
+### Passo a passo
+
+1. **(Opcional) Configure variáveis em `.env`:**
+
+	- `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB`
+	- `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`
+
+	Se não definir, o `docker-compose.yml` usa defaults de desenvolvimento.
+
+2. **Suba os containers:**
+
+	```bash
+	docker compose up --build
+	```
+
+	O serviço `app` instala dependências, gera cliente Prisma, aplica `db:push` e inicia em modo dev.
+
+3. **Acesse a aplicação:**
+
+	- App: http://localhost:3000
+	- Postgres: localhost:5432
+
+4. **Parar os containers:**
+
+	```bash
+	docker compose down
+	```
+
+5. **Parar e remover também o volume do banco:**
+
+	```bash
+	docker compose down -v
+	```
 
 ## 📂 Estrutura de Pastas
 
