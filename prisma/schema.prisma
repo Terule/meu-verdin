@@ -6,7 +6,7 @@
 
 generator client {
   provider = "prisma-client"
-  output   = "../generated/prisma"
+  output   = "../src/generated/prisma"
 }
 
 datasource db {
@@ -106,6 +106,7 @@ model BankAccount {
   transactions Transaction[]
 
   @@map("bank_accounts")
+  @@index([userId])
 }
 
 model Category {
@@ -127,6 +128,7 @@ model Category {
   transactions Transaction[]
 
   @@map("categories")
+  @@index([userId, type])
 }
 
 model Budget {
@@ -163,4 +165,6 @@ model Transaction {
   category    Category    @relation(fields: [categoryId], references: [id])
 
   @@map("transactions")
+  @@index([bankAccountId, date])
+  @@index([categoryId, date])
 }
