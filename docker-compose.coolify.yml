@@ -58,7 +58,9 @@ services:
       db:
         condition: service_healthy
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER:?Configure POSTGRES_USER no Coolify}:${POSTGRES_PASSWORD:?Configure POSTGRES_PASSWORD no Coolify}@db:5432/${POSTGRES_DB:?Configure POSTGRES_DB no Coolify}?schema=public
+      # Keep this as a complete, URL-encoded connection string. Constructing it
+      # from POSTGRES_PASSWORD breaks when a generated password contains @, :, / or #.
+      DATABASE_URL: ${DATABASE_URL:?Configure DATABASE_URL no Coolify}
     command: ["/bin/sh", "-ec", "npm run db:migrate:deploy && npm run db:seed"]
 
   app:
@@ -72,7 +74,7 @@ services:
       storage-init:
         condition: service_completed_successfully
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER:?Configure POSTGRES_USER no Coolify}:${POSTGRES_PASSWORD:?Configure POSTGRES_PASSWORD no Coolify}@db:5432/${POSTGRES_DB:?Configure POSTGRES_DB no Coolify}?schema=public
+      DATABASE_URL: ${DATABASE_URL:?Configure DATABASE_URL no Coolify}
       BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:?Configure BETTER_AUTH_SECRET no Coolify}
       BETTER_AUTH_URL: ${BETTER_AUTH_URL:?Configure BETTER_AUTH_URL no Coolify}
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:?Configure GOOGLE_CLIENT_ID no Coolify}
