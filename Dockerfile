@@ -35,6 +35,10 @@ COPY --from=builder /app/prisma.config.ts ./prisma.config.ts
 COPY --from=builder /app/src/generated ./src/generated
 COPY --from=builder /app/.next ./.next
 COPY --from=builder /app/public ./public
+COPY docker-entrypoint.sh ./docker-entrypoint.sh
+
+RUN chmod 755 ./docker-entrypoint.sh
 
 EXPOSE 3000
+ENTRYPOINT ["/app/docker-entrypoint.sh"]
 CMD ["npm", "run", "start"]
