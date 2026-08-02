@@ -1,0 +1,5 @@
+FROM minio/mc:latest
+
+# Keep the shell entrypoint in the image. Some Compose deployment engines may
+# override a service-level entrypoint, but they preserve an image entrypoint.
+ENTRYPOINT ["/bin/sh", "-ec"]
