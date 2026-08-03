@@ -19,6 +19,7 @@ export default async function AppLayout({
       <div className="min-h-dvh md:flex">
         <AppSidebar
           user={{
+            email: user.email,
             image: user.image ?? null,
             name: user.name,
             subscriptionPlan: profile?.subscriptionPlan ?? 'FREE',

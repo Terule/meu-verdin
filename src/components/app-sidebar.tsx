@@ -37,6 +37,7 @@ const contentTransition = {
 } as const
 
 type SidebarUser = {
+  email: string
   image: string | null
   name: string
   subscriptionPlan: string | null
@@ -203,11 +204,20 @@ function SidebarContent({
               role="menu"
               transition={reduceMotion ? { duration: 0 } : contentTransition}
             >
-              <div className="flex items-center justify-between gap-3 px-2 py-1">
-                <span className="text-sm font-medium">Tema</span>
-                <ThemeToggle />
+              <div className="flex items-center gap-3 px-2 py-2">
+                <UserAvatar user={user} />
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-semibold">{user.name}</p>
+                  <p className="truncate text-xs text-sidebar-foreground/60">
+                    {user.email}
+                  </p>
+                  <p className="mt-1 text-xs font-medium text-primary">
+                    Licença {plan}
+                  </p>
+                </div>
               </div>
-              <div className="mt-1 border-t border-sidebar-border pt-1">
+              <div className="mt-1 flex items-center justify-between border-t border-sidebar-border px-2 pt-2">
+                <ThemeToggle />
                 <SignOutButton />
               </div>
             </motion.div>
