@@ -12,6 +12,7 @@ import {
   WalletCards,
   X,
 } from 'lucide-react'
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
@@ -28,6 +29,12 @@ const navigation = [
   { href: '/app/categorias', label: 'Categorias', icon: Tags },
   { href: '/app/juntos', label: 'Juntos', icon: UsersRound },
 ]
+
+const sidebarSpring = { damping: 26, stiffness: 260, type: 'spring' } as const
+const contentTransition = {
+  duration: 0.18,
+  ease: [0.22, 1, 0.36, 1],
+} as const
 
 type SidebarUser = {
   image: string | null
@@ -81,6 +88,7 @@ function SidebarContent({
   user: SidebarUser
 }) {
   const pathname = usePathname()
+  const reduceMotion = useReducedMotion()
   const [profileMenuOpen, setProfileMenuOpen] = useState(false)
   const profileMenuRef = useRef<HTMLDivElement>(null)
   const profileButtonRef = useRef<HTMLButtonElement>(null)
@@ -114,13 +122,25 @@ function SidebarContent({
 
   return (
     <>
-      <div className="flex h-16 items-center gap-3 px-4">
-        <div className="grid size-9 shrink-0 place-items-center rounded-xl bg-primary font-display font-bold text-primary-foreground">
-          V
+      <div className="h-16 px-3">
+        <div className="grid h-full grid-cols-[3.5rem_minmax(0,1fr)] items-center">
+          <div className="grid size-9 justify-self-center place-items-center rounded-xl bg-primary font-display font-bold text-primary-foreground">
+            V
+          </div>
+          <AnimatePresence initial={false}>
+            {!collapsed ? (
+              <motion.span
+                animate={{ opacity: 1, x: 0 }}
+                className="overflow-hidden whitespace-nowrap font-display text-lg font-bold"
+                exit={{ opacity: 0, x: -10 }}
+                initial={{ opacity: 0, x: -10 }}
+                transition={reduceMotion ? { duration: 0 } : contentTransition}
+              >
+                Meu Verdin
+              </motion.span>
+            ) : null}
+          </AnimatePresence>
         </div>
-        {!collapsed ? (
-          <span className="font-display text-lg font-bold">Meu Verdin</span>
-        ) : null}
       </div>
       <nav className="flex-1 space-y-1 px-3">
         {navigation.map((item) => {
@@ -133,14 +153,36 @@ function SidebarContent({
             <Link
               aria-current={active ? 'page' : undefined}
               aria-label={item.label}
-              className={`group text-sm font-medium transition ${collapsed ? 'mx-auto grid size-11 place-items-center rounded-xl' : 'flex h-11 items-center gap-3 rounded-xl px-3'} ${active ? 'bg-sidebar-accent text-sidebar-accent-foreground' : 'text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'}`}
+              className={`group relative grid h-11 w-full grid-cols-[3.5rem_minmax(0,1fr)] items-center overflow-hidden rounded-xl text-sm font-medium ${active ? 'text-sidebar-accent-foreground' : 'text-sidebar-foreground/70 hover:text-sidebar-accent-foreground'}`}
               href={item.href}
               key={item.href}
               onClick={onNavigate}
               title={collapsed ? item.label : undefined}
             >
-              <Icon className="size-5 shrink-0" />
-              <span className={collapsed ? 'sr-only' : ''}>{item.label}</span>
+              <motion.span
+                animate={{ left: collapsed ? 6 : 0, right: collapsed ? 6 : 0 }}
+                aria-hidden="true"
+                className={`absolute inset-y-0 rounded-xl transition-colors ${active ? 'bg-sidebar-accent' : 'group-hover:bg-sidebar-accent'}`}
+                transition={reduceMotion ? { duration: 0 } : sidebarSpring}
+              />
+              <span className="relative z-10 grid h-full place-items-center">
+                <Icon className="size-5 shrink-0" />
+              </span>
+              <AnimatePresence initial={false}>
+                {!collapsed ? (
+                  <motion.span
+                    animate={{ opacity: 1, x: 0 }}
+                    className="relative z-10 overflow-hidden whitespace-nowrap"
+                    exit={{ opacity: 0, x: -8 }}
+                    initial={{ opacity: 0, x: -8 }}
+                    transition={
+                      reduceMotion ? { duration: 0 } : contentTransition
+                    }
+                  >
+                    {item.label}
+                  </motion.span>
+                ) : null}
+              </AnimatePresence>
             </Link>
           )
         })}
@@ -149,22 +191,28 @@ function SidebarContent({
         className="relative border-t border-sidebar-border p-3"
         ref={profileMenuRef}
       >
-        {profileMenuOpen ? (
-          <div
-            aria-label="Menu do perfil"
-            className="absolute bottom-full left-3 right-3 z-20 mb-2 rounded-xl border border-sidebar-border bg-sidebar p-2 shadow-xl"
-            id="profile-menu"
-            role="menu"
-          >
-            <div className="flex items-center justify-between gap-3 px-2 py-1">
-              <span className="text-sm font-medium">Tema</span>
-              <ThemeToggle />
-            </div>
-            <div className="mt-1 border-t border-sidebar-border pt-1">
-              <SignOutButton />
-            </div>
-          </div>
-        ) : null}
+        <AnimatePresence>
+          {profileMenuOpen ? (
+            <motion.div
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              aria-label="Menu do perfil"
+              className={`absolute z-20 rounded-xl border border-sidebar-border bg-sidebar p-2 shadow-xl ${collapsed ? 'bottom-3 left-full ml-2 w-52 origin-bottom-left' : 'bottom-full left-3 right-3 mb-2 origin-bottom'}`}
+              exit={{ opacity: 0, scale: 0.97, y: 6 }}
+              id="profile-menu"
+              initial={{ opacity: 0, scale: 0.97, y: 6 }}
+              role="menu"
+              transition={reduceMotion ? { duration: 0 } : contentTransition}
+            >
+              <div className="flex items-center justify-between gap-3 px-2 py-1">
+                <span className="text-sm font-medium">Tema</span>
+                <ThemeToggle />
+              </div>
+              <div className="mt-1 border-t border-sidebar-border pt-1">
+                <SignOutButton />
+              </div>
+            </motion.div>
+          ) : null}
+        </AnimatePresence>
         <button
           aria-controls="profile-menu"
           aria-expanded={profileMenuOpen}
@@ -175,16 +223,24 @@ function SidebarContent({
           type="button"
         >
           <UserAvatar user={user} />
-          {!collapsed ? (
-            <span className="min-w-0">
-              <span className="block truncate text-sm font-semibold">
-                {shortName(user.name)}
-              </span>
-              <span className="block text-xs text-sidebar-foreground/60">
-                {plan}
-              </span>
-            </span>
-          ) : null}
+          <AnimatePresence initial={false}>
+            {!collapsed ? (
+              <motion.span
+                animate={{ opacity: 1, x: 0 }}
+                className="min-w-0"
+                exit={{ opacity: 0, x: -8 }}
+                initial={{ opacity: 0, x: -8 }}
+                transition={reduceMotion ? { duration: 0 } : contentTransition}
+              >
+                <span className="block truncate text-sm font-semibold">
+                  {shortName(user.name)}
+                </span>
+                <span className="block text-xs text-sidebar-foreground/60">
+                  {plan}
+                </span>
+              </motion.span>
+            ) : null}
+          </AnimatePresence>
         </button>
       </div>
     </>
@@ -194,6 +250,7 @@ function SidebarContent({
 export function AppSidebar({ user }: { user: SidebarUser }) {
   const [collapsed, setCollapsed] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
+  const reduceMotion = useReducedMotion()
   useEffect(() => {
     setCollapsed(
       localStorage.getItem('meu-verdin-sidebar-collapsed') === 'true',
@@ -216,8 +273,11 @@ export function AppSidebar({ user }: { user: SidebarUser }) {
       >
         <Menu className="size-5" />
       </button>
-      <aside
-        className={`sticky top-0 hidden h-dvh shrink-0 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground transition-[width] duration-200 md:flex ${collapsed ? 'w-20' : 'w-64'}`}
+      <motion.aside
+        animate={{ width: collapsed ? 80 : 256 }}
+        className="sticky top-0 hidden h-dvh shrink-0 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground md:flex"
+        initial={false}
+        transition={reduceMotion ? { duration: 0 } : sidebarSpring}
       >
         <button
           aria-label={collapsed ? 'Expandir menu' : 'Recolher menu'}
@@ -232,35 +292,44 @@ export function AppSidebar({ user }: { user: SidebarUser }) {
           )}
         </button>
         <SidebarContent collapsed={collapsed} user={user} />
-      </aside>
-      {mobileOpen ? (
-        <>
-          <button
-            aria-label="Fechar navegação"
-            className="fixed inset-0 z-40 bg-foreground/30 md:hidden"
-            onClick={() => setMobileOpen(false)}
-            type="button"
-          />
-          <aside
-            aria-label="Navegação"
-            className="fixed inset-y-0 left-0 z-50 flex w-72 flex-col bg-sidebar text-sidebar-foreground shadow-2xl md:hidden"
-          >
-            <button
+      </motion.aside>
+      <AnimatePresence>
+        {mobileOpen ? (
+          <>
+            <motion.button
+              animate={{ opacity: 1 }}
               aria-label="Fechar navegação"
-              className="absolute left-60 top-5 grid size-9 place-items-center rounded-xl bg-sidebar-accent"
+              className="fixed inset-0 z-40 bg-foreground/30 md:hidden"
+              exit={{ opacity: 0 }}
+              initial={{ opacity: 0 }}
               onClick={() => setMobileOpen(false)}
               type="button"
-            >
-              <X className="size-5" />
-            </button>
-            <SidebarContent
-              collapsed={false}
-              onNavigate={() => setMobileOpen(false)}
-              user={user}
             />
-          </aside>
-        </>
-      ) : null}
+            <motion.aside
+              animate={{ x: 0 }}
+              aria-label="Navegação"
+              className="fixed inset-y-0 left-0 z-50 flex w-72 flex-col bg-sidebar text-sidebar-foreground shadow-2xl md:hidden"
+              exit={{ x: '-100%' }}
+              initial={{ x: '-100%' }}
+              transition={reduceMotion ? { duration: 0 } : sidebarSpring}
+            >
+              <button
+                aria-label="Fechar navegação"
+                className="absolute left-60 top-5 grid size-9 place-items-center rounded-xl bg-sidebar-accent"
+                onClick={() => setMobileOpen(false)}
+                type="button"
+              >
+                <X className="size-5" />
+              </button>
+              <SidebarContent
+                collapsed={false}
+                onNavigate={() => setMobileOpen(false)}
+                user={user}
+              />
+            </motion.aside>
+          </>
+        ) : null}
+      </AnimatePresence>
     </>
   )
 }

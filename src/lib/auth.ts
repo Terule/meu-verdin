@@ -25,6 +25,12 @@ export const auth = betterAuth({
     },
   },
   disabledPaths: ['/sign-up/email', '/sign-in/email'],
+  session: {
+    // End sessions after one hour without activity; active sessions renew every
+    // ten minutes rather than writing to the database on each request.
+    expiresIn: 60 * 60,
+    updateAge: 10 * 60,
+  },
   advanced: {
     useSecureCookies: process.env.NODE_ENV === 'production',
   },
