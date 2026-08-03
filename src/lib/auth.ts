@@ -13,6 +13,8 @@ export const auth = betterAuth({
     google: {
       clientId: process.env.GOOGLE_CLIENT_ID as string,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
+      // Keep the locally stored profile picture in sync for returning users.
+      overrideUserInfoOnSignIn: true,
       prompt: 'select_account',
     },
   },

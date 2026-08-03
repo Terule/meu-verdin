@@ -17,7 +17,8 @@ const roboto = Roboto({
 
 export const metadata: Metadata = {
   title: { default: 'Meu Verdin', template: '%s | Meu Verdin' },
-  description: 'Organize sua vida financeira com leveza.',
+  description:
+    'Meu Verdin é um aplicativo de organização financeira pessoal para contas, lançamentos e orçamentos mensais.',
 }
 
 export default function RootLayout({

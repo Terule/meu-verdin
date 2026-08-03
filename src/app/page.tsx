@@ -1,9 +1,12 @@
 import {
   ArrowRight,
   BadgeCheck,
+  Building2,
   ChartNoAxesCombined,
+  ClipboardList,
   Leaf,
   ShieldCheck,
+  Target,
 } from 'lucide-react'
 import Link from 'next/link'
 
@@ -32,11 +35,12 @@ export default function Home() {
             <BadgeCheck className="size-4" /> Seu dinheiro, com mais clareza
           </p>
           <h1 className="font-display text-5xl font-bold tracking-[-0.045em] text-balance sm:text-6xl">
-            Planeje o agora. Veja seu futuro florescer.
+            Meu Verdin: organização financeira pessoal para o seu dia a dia.
           </h1>
           <p className="mt-6 max-w-xl text-lg leading-8 text-muted-foreground">
-            Um lugar sereno para acompanhar gastos, organizar orçamentos e tomar
-            decisões melhores para a sua vida financeira.
+            O Meu Verdin é um aplicativo para registrar receitas e despesas,
+            acompanhar contas e instituições, criar orçamentos mensais e
+            entender melhor a sua vida financeira.
           </p>
           <div className="mt-9 max-w-sm">
             <GoogleSignInButton />
@@ -96,6 +100,42 @@ export default function Home() {
             </div>
           </div>
         </div>
+      </section>
+      <section
+        aria-labelledby="como-funciona"
+        className="mb-16 grid gap-4 sm:grid-cols-3"
+      >
+        <h2 className="sr-only" id="como-funciona">
+          Como o Meu Verdin ajuda a organizar suas finanças
+        </h2>
+        {[
+          {
+            icon: Building2,
+            title: 'Contas e benefícios',
+            description:
+              'Reúna bancos, cartões, dinheiro e benefícios em um só lugar.',
+          },
+          {
+            icon: ClipboardList,
+            title: 'Lançamentos',
+            description:
+              'Registre receitas e despesas para acompanhar o saldo real.',
+          },
+          {
+            icon: Target,
+            title: 'Orçamentos mensais',
+            description:
+              'Defina limites por categoria e acompanhe o que já foi gasto.',
+          },
+        ].map(({ icon: Icon, title, description }) => (
+          <article className="glass-card p-5" key={title}>
+            <Icon className="size-5 text-primary" />
+            <h3 className="mt-4 font-display text-lg font-bold">{title}</h3>
+            <p className="mt-2 text-sm leading-6 text-muted-foreground">
+              {description}
+            </p>
+          </article>
+        ))}
       </section>
       <div className="mb-6 flex justify-center">
         <Link
