@@ -229,12 +229,14 @@ function SidebarContent({
           aria-controls="profile-menu"
           aria-expanded={profileMenuOpen}
           aria-haspopup="menu"
-          className={`flex w-full items-center rounded-xl py-2 transition hover:bg-sidebar-accent ${collapsed ? 'justify-center px-0' : 'gap-3 px-2 text-left'}`}
+          className="grid w-full grid-cols-[3.5rem_minmax(0,1fr)] items-center rounded-xl py-2 text-left transition hover:bg-sidebar-accent"
           onClick={() => setProfileMenuOpen((open) => !open)}
           ref={profileButtonRef}
           type="button"
         >
-          <UserAvatar user={user} />
+          <span className="grid place-items-center">
+            <UserAvatar user={user} />
+          </span>
           <AnimatePresence initial={false}>
             {!collapsed ? (
               <motion.span
