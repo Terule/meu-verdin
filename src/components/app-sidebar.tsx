@@ -120,7 +120,7 @@ function SidebarContent({
   }, [profileMenuOpen])
 
   return (
-    <>
+    <div className="flex h-full min-h-0 flex-1 flex-col">
       <div className="h-16 px-3">
         <div className="grid h-full grid-cols-[3.5rem_minmax(0,1fr)] items-center">
           <div className="grid size-9 justify-self-center place-items-center rounded-xl bg-primary font-display font-bold text-primary-foreground">
@@ -141,7 +141,7 @@ function SidebarContent({
           </AnimatePresence>
         </div>
       </div>
-      <nav className="flex-1 space-y-1 px-3">
+      <nav className="min-h-0 flex-1 space-y-1 overflow-y-auto px-3">
         {navigation.map((item) => {
           const active =
             item.href === '/app'
@@ -187,7 +187,7 @@ function SidebarContent({
         })}
       </nav>
       <div
-        className="relative border-t border-sidebar-border p-3"
+        className="relative mt-auto shrink-0 border-t border-sidebar-border p-3"
         ref={profileMenuRef}
       >
         <AnimatePresence>
@@ -251,7 +251,7 @@ function SidebarContent({
           </AnimatePresence>
         </button>
       </div>
-    </>
+    </div>
   )
 }
 
@@ -323,7 +323,7 @@ export function AppSidebar({ user }: { user: SidebarUser }) {
             >
               <button
                 aria-label="Fechar navegação"
-                className="absolute left-60 top-5 grid size-9 place-items-center rounded-xl bg-sidebar-accent"
+                className="absolute right-3 top-3.5 grid size-9 place-items-center rounded-xl bg-sidebar-accent"
                 onClick={() => setMobileOpen(false)}
                 type="button"
               >
