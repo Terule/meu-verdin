@@ -146,4 +146,7 @@
   .primary-button {
     @apply h-11 rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/20 transition hover:brightness-105 active:scale-[0.98] disabled:opacity-70;
   }
+  .secondary-button {
+    @apply h-11 rounded-xl border border-border bg-secondary px-4 text-sm font-semibold text-secondary-foreground transition hover:brightness-95 active:scale-[0.98] disabled:opacity-70;
+  }
 }

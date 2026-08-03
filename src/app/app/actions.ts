@@ -47,6 +47,10 @@ const budgetSchema = z.object({
   month: z.coerce.number().int().min(1).max(12),
   year: z.coerce.number().int().min(2024).max(2100),
 })
+const categorySchema = z.object({
+  name: z.string().trim().min(2).max(60),
+  type: z.enum(['INCOME', 'EXPENSE']),
+})
 
 function fail(message: string): never {
   throw new Error(message)
@@ -131,6 +135,8 @@ export async function createFinancialAccount(formData: FormData) {
     }
   })
   revalidatePath('/app')
+  revalidatePath('/app/contas')
+  revalidatePath('/app/lancamentos')
 }
 
 export async function updateFinancialAccount(formData: FormData) {
@@ -148,6 +154,7 @@ export async function updateFinancialAccount(formData: FormData) {
     data: { name: input.data.name, type: input.data.type },
   })
   revalidatePath('/app')
+  revalidatePath('/app/contas')
 }
 
 export async function deleteFinancialAccount(formData: FormData) {
@@ -170,6 +177,8 @@ export async function deleteFinancialAccount(formData: FormData) {
     fail('Mantenha ao menos uma conta vinculada a uma instituição.')
   await prisma.financialAccount.delete({ where: { id: account.id } })
   revalidatePath('/app')
+  revalidatePath('/app/contas')
+  revalidatePath('/app/lancamentos')
 }
 
 export async function updatePrivateInstitution(formData: FormData) {
@@ -190,6 +199,7 @@ export async function updatePrivateInstitution(formData: FormData) {
     data: { name: input.data.name },
   })
   revalidatePath('/app')
+  revalidatePath('/app/contas')
 }
 
 export async function deletePrivateInstitution(formData: FormData) {
@@ -208,6 +218,7 @@ export async function deletePrivateInstitution(formData: FormData) {
     fail('Exclua as contas desta instituição antes de removê-la.')
   await prisma.institution.delete({ where: { id: institution.id } })
   revalidatePath('/app')
+  revalidatePath('/app/contas')
 }
 
 export async function createTransaction(formData: FormData) {
@@ -236,6 +247,8 @@ export async function createTransaction(formData: FormData) {
     },
   })
   revalidatePath('/app')
+  revalidatePath('/app/lancamentos')
+  revalidatePath('/app/contas')
 }
 
 export async function createBudget(formData: FormData) {
@@ -266,4 +279,33 @@ export async function createBudget(formData: FormData) {
     update: { amount: parseCurrencyToCents(input.data.amount) },
   })
   revalidatePath('/app')
+  revalidatePath('/app/orcamentos')
+}
+
+export async function createCategory(formData: FormData) {
+  const user = await requireUser()
+  const input = categorySchema.safeParse(Object.fromEntries(formData))
+  if (!input.success) fail('Preencha uma categoria válida.')
+  const exists = await prisma.category.findFirst({
+    where: { userId: user.id, name: input.data.name, type: input.data.type },
+  })
+  if (exists) fail('Você já possui uma categoria com esse nome.')
+  await prisma.category.create({ data: { ...input.data, userId: user.id } })
+  revalidatePath('/app/categorias')
+}
+
+export async function deleteCategory(formData: FormData) {
+  const user = await requireUser()
+  const categoryId = z.string().uuid().safeParse(formData.get('categoryId'))
+  if (!categoryId.success) fail('Categoria inválida.')
+  const category = await prisma.category.findFirst({
+    where: { id: categoryId.data, userId: user.id },
+    include: { _count: { select: { budgets: true, transactions: true } } },
+  })
+  if (!category) fail('Categorias do sistema não podem ser excluídas.')
+  if (category._count.budgets || category._count.transactions) {
+    fail('Não é possível excluir uma categoria em uso.')
+  }
+  await prisma.category.delete({ where: { id: category.id } })
+  revalidatePath('/app/categorias')
 }
