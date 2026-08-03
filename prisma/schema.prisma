@@ -34,7 +34,8 @@ model User {
   // Relacionamentos Financeiros
   categories    Category[]
   budgets       Budget[]
-  bankAccounts  BankAccount[]
+  financialAccounts FinancialAccount[]
+  privateInstitutions Institution[] @relation("InstitutionOwner")
 
   @@map("user")
 }
@@ -92,21 +93,65 @@ model Verification {
 // 💰 CORE FINANCEIRO (Meu Verdin)
 // ==========================================
 
-model BankAccount {
-  id        String   @id @default(uuid())
-  userId    String
-  name      String   // Ex: "Nubank", "Carteira"
-  logo      String?  // URL do MinIO
-  type      String   // "WALLET", "BANK", "CREDIT_CARD"
-  balance   BigInt   // Saldo em centavos (R$ 10,00 = 1000)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+enum InstitutionKind {
+  BANK
+  PAYMENT_INSTITUTION
+  BROKERAGE
+  BENEFITS
+  OTHER
+}
 
-  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+enum FinancialAccountType {
+  CHECKING
+  PAYMENT
+  SAVINGS
+  INVESTMENT
+  CREDIT_CARD
+  FOOD_BENEFIT
+  MEAL_BENEFIT
+  FLEX_BENEFIT
+  CASH
+  OTHER
+}
+
+enum TransactionKind {
+  REGULAR
+  BALANCE_ADJUSTMENT
+}
+
+model Institution {
+  id        String          @id @default(uuid())
+  slug      String          @unique
+  name      String
+  kind      InstitutionKind
+  icon      String
+  userId    String?
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+
+  user     User?              @relation("InstitutionOwner", fields: [userId], references: [id], onDelete: Cascade)
+  accounts FinancialAccount[]
+
+  @@index([kind])
+  @@index([userId])
+  @@map("institutions")
+}
+
+model FinancialAccount {
+  id            String               @id @default(uuid())
+  userId        String
+  institutionId String?
+  name          String
+  type          FinancialAccountType
+  createdAt     DateTime             @default(now())
+  updatedAt     DateTime             @updatedAt
+
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  institution  Institution? @relation(fields: [institutionId], references: [id], onDelete: Restrict)
   transactions Transaction[]
 
-  @@map("bank_accounts")
-  @@index([userId])
+  @@index([userId, institutionId])
+  @@map("financial_accounts")
 }
 
 model Category {
@@ -151,8 +196,9 @@ model Budget {
 
 model Transaction {
   id            String   @id @default(uuid())
-  bankAccountId String
-  categoryId    String
+  financialAccountId String
+  categoryId    String?
+  kind          TransactionKind @default(REGULAR)
   amount        BigInt   // Valor da transação em centavos
   date          DateTime // Data da competência
   description   String?
@@ -161,10 +207,10 @@ model Transaction {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
-  bankAccount BankAccount @relation(fields: [bankAccountId], references: [id])
-  category    Category    @relation(fields: [categoryId], references: [id])
+  financialAccount FinancialAccount @relation(fields: [financialAccountId], references: [id], onDelete: Restrict)
+  category    Category?   @relation(fields: [categoryId], references: [id], onDelete: Restrict)
 
   @@map("transactions")
-  @@index([bankAccountId, date])
+  @@index([financialAccountId, date])
   @@index([categoryId, date])
 }

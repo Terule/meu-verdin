@@ -1,57 +1,110 @@
-import { Plus, WalletCards } from 'lucide-react'
+import { Building2, Plus, WalletCards } from 'lucide-react'
 
+import { calculateBalance } from '@/lib/financial'
 import { formatCurrency, formatDate, getMonthRange } from '@/lib/locale'
 import prisma from '@/lib/prisma'
 import { requireUser } from '@/lib/session'
 
 import {
-  createAccount,
   createBudget,
+  createFinancialAccount,
   createTransaction,
+  deleteFinancialAccount,
+  deletePrivateInstitution,
+  updateFinancialAccount,
+  updatePrivateInstitution,
 } from '@/app/app/actions'
 import { AnimatedNumber } from '@/components/animated-number'
 import { SignOutButton } from '@/components/sign-out-button'
 import { ThemeToggle } from '@/components/theme-toggle'
 
+const accountTypeLabels: Record<string, string> = {
+  CHECKING: 'Conta corrente',
+  PAYMENT: 'Conta de pagamento',
+  SAVINGS: 'Poupança',
+  INVESTMENT: 'Investimento',
+  CREDIT_CARD: 'Cartão de crédito',
+  FOOD_BENEFIT: 'Vale-alimentação',
+  MEAL_BENEFIT: 'Vale-refeição',
+  FLEX_BENEFIT: 'Benefício flexível',
+  CASH: 'Dinheiro em espécie',
+  OTHER: 'Outra conta',
+}
+
 export default async function DashboardPage() {
   const user = await requireUser()
   const period = getMonthRange()
-  const [accounts, categories, budgets, transactions] = await Promise.all([
-    prisma.bankAccount.findMany({
-      where: { userId: user.id },
-      orderBy: { createdAt: 'asc' },
-    }),
-    prisma.category.findMany({
-      where: { OR: [{ userId: user.id }, { userId: null }] },
-      orderBy: [{ userId: 'asc' }, { name: 'asc' }],
-    }),
-    prisma.budget.findMany({
-      where: { userId: user.id, month: period.month, year: period.year },
-      include: { category: true },
-    }),
-    prisma.transaction.findMany({
-      where: {
-        bankAccount: { userId: user.id },
-        date: { gte: period.start, lt: period.end },
-      },
-      include: { category: true, bankAccount: true },
-      orderBy: { date: 'desc' },
-      take: 12,
-    }),
-  ])
-  const balance = accounts.reduce(
-    (sum, account) => sum + account.balance,
+  const [accounts, institutions, categories, budgets, monthTransactions] =
+    await Promise.all([
+      prisma.financialAccount.findMany({
+        where: { userId: user.id },
+        include: {
+          institution: true,
+          transactions: { include: { category: true } },
+        },
+        orderBy: [{ institution: { name: 'asc' } }, { name: 'asc' }],
+      }),
+      prisma.institution.findMany({
+        where: { OR: [{ userId: null }, { userId: user.id }] },
+        orderBy: { name: 'asc' },
+      }),
+      prisma.category.findMany({
+        where: { OR: [{ userId: user.id }, { userId: null }] },
+        orderBy: [{ userId: 'asc' }, { name: 'asc' }],
+      }),
+      prisma.budget.findMany({
+        where: { userId: user.id, month: period.month, year: period.year },
+        include: { category: true },
+      }),
+      prisma.transaction.findMany({
+        where: {
+          financialAccount: { userId: user.id },
+          date: { gte: period.start, lt: period.end },
+        },
+        include: {
+          category: true,
+          financialAccount: { include: { institution: true } },
+        },
+        orderBy: { date: 'desc' },
+        take: 12,
+      }),
+    ])
+  const balances = new Map(
+    accounts.map((account) => [
+      account.id,
+      calculateBalance(
+        account.transactions.map((transaction) => ({
+          amount: transaction.amount,
+          kind: transaction.kind,
+          categoryType: transaction.category?.type,
+        })),
+      ),
+    ]),
+  )
+  const balance = [...balances.values()].reduce(
+    (sum, value) => sum + value,
     BigInt(0),
   )
-  const income = transactions
-    .filter((transaction) => transaction.category.type === 'INCOME')
+  const regularTransactions = monthTransactions.filter(
+    (transaction) => transaction.kind === 'REGULAR',
+  )
+  const income = regularTransactions
+    .filter((transaction) => transaction.category?.type === 'INCOME')
     .reduce((sum, transaction) => sum + transaction.amount, BigInt(0))
-  const expenses = transactions
-    .filter((transaction) => transaction.category.type === 'EXPENSE')
+  const expenses = regularTransactions
+    .filter((transaction) => transaction.category?.type === 'EXPENSE')
     .reduce((sum, transaction) => sum + transaction.amount, BigInt(0))
   const totalBudget = budgets.reduce(
     (sum, budget) => sum + budget.amount,
     BigInt(0),
+  )
+  const groupedAccounts = new Map<string, typeof accounts>()
+  for (const account of accounts) {
+    const key = account.institutionId ?? 'cash'
+    groupedAccounts.set(key, [...(groupedAccounts.get(key) ?? []), account])
+  }
+  const hasInstitutionAccount = accounts.some(
+    (account) => account.institutionId,
   )
   const monthLabel = new Intl.DateTimeFormat('pt-BR', {
     month: 'long',
@@ -77,7 +130,7 @@ export default async function DashboardPage() {
         <p className="capitalize text-sm text-muted-foreground">{monthLabel}</p>
         <div className="mt-3 grid gap-4 md:grid-cols-3">
           <Metric
-            label="Saldo em contas"
+            label="Saldo total"
             value={<AnimatedNumber value={balance} />}
           />
           <Metric
@@ -92,6 +145,7 @@ export default async function DashboardPage() {
           />
         </div>
       </section>
+
       <section className="mt-7 grid gap-6 lg:grid-cols-[1.15fr_.85fr]">
         <div className="glass-card p-5 sm:p-7">
           <div className="flex items-center justify-between">
@@ -103,30 +157,33 @@ export default async function DashboardPage() {
             </div>
             <WalletCards className="size-6 text-primary" />
           </div>
-          {transactions.length ? (
+          {regularTransactions.length ? (
             <div className="mt-5 divide-y divide-border/60">
-              {transactions.map((transaction) => (
+              {regularTransactions.map((transaction) => (
                 <div
                   className="flex items-center justify-between gap-4 py-4"
                   key={transaction.id}
                 >
                   <div>
                     <p className="font-medium">
-                      {transaction.description || transaction.category.name}
+                      {transaction.description || transaction.category?.name}
                     </p>
                     <p className="mt-1 text-sm text-muted-foreground">
-                      {transaction.bankAccount.name} ·{' '}
+                      {transaction.financialAccount.institution?.name
+                        ? `${transaction.financialAccount.institution.name} › `
+                        : ''}
+                      {transaction.financialAccount.name} ·{' '}
                       {formatDate(transaction.date)}
                     </p>
                   </div>
                   <strong
                     className={
-                      transaction.category.type === 'INCOME'
+                      transaction.category?.type === 'INCOME'
                         ? 'text-primary'
                         : ''
                     }
                   >
-                    {transaction.category.type === 'INCOME' ? '+' : '−'}{' '}
+                    {transaction.category?.type === 'INCOME' ? '+' : '−'}{' '}
                     {formatCurrency(transaction.amount)}
                   </strong>
                 </div>
@@ -158,41 +215,238 @@ export default async function DashboardPage() {
           )}
         </div>
       </section>
-      <section className="mt-7 grid gap-6 lg:grid-cols-3">
-        <FormCard title="Nova conta">
-          <form action={createAccount} className="space-y-3">
+
+      <section className="mt-7 grid gap-6 lg:grid-cols-[1.15fr_.85fr]">
+        <div className="glass-card p-5 sm:p-7">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-muted-foreground">Suas instituições</p>
+              <h2 className="font-display text-xl font-bold">
+                Contas financeiras
+              </h2>
+            </div>
+            <Building2 className="size-6 text-primary" />
+          </div>
+          {accounts.length ? (
+            <div className="mt-5 space-y-5">
+              {[...groupedAccounts.entries()].map(([key, group]) => {
+                const institution = group[0].institution
+                const groupBalance = group.reduce(
+                  (sum, account) =>
+                    sum + (balances.get(account.id) ?? BigInt(0)),
+                  BigInt(0),
+                )
+                return (
+                  <div
+                    className="rounded-2xl border border-border/60 p-4"
+                    key={key}
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <p className="font-semibold">
+                          {institution?.name ?? 'Dinheiro em espécie'}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {institution ? 'Instituição' : 'Conta avulsa'}
+                        </p>
+                      </div>
+                      <strong>{formatCurrency(groupBalance)}</strong>
+                    </div>
+                    {group.map((account) => (
+                      <details
+                        className="mt-3 rounded-xl bg-muted/50 p-3"
+                        key={account.id}
+                      >
+                        <summary className="cursor-pointer list-none">
+                          <div className="flex justify-between gap-3">
+                            <span>
+                              {account.name}
+                              <small className="ml-2 text-muted-foreground">
+                                {accountTypeLabels[account.type]}
+                              </small>
+                            </span>
+                            <span>
+                              {formatCurrency(
+                                balances.get(account.id) ?? BigInt(0),
+                              )}
+                            </span>
+                          </div>
+                        </summary>
+                        <div className="mt-4 grid gap-3 border-t border-border/60 pt-3 sm:grid-cols-2">
+                          <form
+                            action={updateFinancialAccount}
+                            className="space-y-2"
+                          >
+                            <input
+                              name="accountId"
+                              type="hidden"
+                              value={account.id}
+                            />
+                            <input
+                              className="field w-full"
+                              defaultValue={account.name}
+                              name="name"
+                              required
+                            />
+                            <select
+                              className="field w-full"
+                              defaultValue={account.type}
+                              name="type"
+                            >
+                              {Object.entries(accountTypeLabels)
+                                .filter(
+                                  ([type]) =>
+                                    account.institutionId || type === 'CASH',
+                                )
+                                .map(([type, label]) => (
+                                  <option key={type} value={type}>
+                                    {label}
+                                  </option>
+                                ))}
+                            </select>
+                            <Submit label="Salvar conta" />
+                          </form>
+                          <form action={deleteFinancialAccount}>
+                            <input
+                              name="accountId"
+                              type="hidden"
+                              value={account.id}
+                            />
+                            <button
+                              className="secondary-button w-full"
+                              type="submit"
+                            >
+                              Excluir conta
+                            </button>
+                          </form>
+                        </div>
+                      </details>
+                    ))}
+                    {institution?.userId ? (
+                      <details className="mt-3 text-sm text-muted-foreground">
+                        <summary className="cursor-pointer">
+                          Gerenciar instituição privada
+                        </summary>
+                        <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                          <form
+                            action={updatePrivateInstitution}
+                            className="flex gap-2"
+                          >
+                            <input
+                              name="institutionId"
+                              type="hidden"
+                              value={institution.id}
+                            />
+                            <input
+                              className="field min-w-0 flex-1"
+                              defaultValue={institution.name}
+                              name="name"
+                              required
+                            />
+                            <button className="secondary-button" type="submit">
+                              Salvar
+                            </button>
+                          </form>
+                          <form action={deletePrivateInstitution}>
+                            <input
+                              name="institutionId"
+                              type="hidden"
+                              value={institution.id}
+                            />
+                            <button
+                              className="secondary-button w-full"
+                              type="submit"
+                            >
+                              Excluir instituição
+                            </button>
+                          </form>
+                        </div>
+                      </details>
+                    ) : null}
+                  </div>
+                )
+              })}
+            </div>
+          ) : (
+            <Empty label="Comece cadastrando uma instituição e sua primeira conta." />
+          )}
+        </div>
+        <FormCard
+          title={
+            hasInstitutionAccount
+              ? 'Adicionar conta'
+              : 'Cadastre sua primeira instituição'
+          }
+        >
+          <form action={createFinancialAccount} className="space-y-3">
             <input
               className="field w-full"
               name="name"
-              placeholder="Ex.: Nubank"
+              placeholder="Ex.: Conta principal"
               required
             />
-            <select className="field w-full" defaultValue="BANK" name="type">
-              <option value="BANK">Conta bancária</option>
-              <option value="WALLET">Carteira</option>
-              <option value="CREDIT_CARD">Cartão</option>
+            <select
+              className="field w-full"
+              defaultValue="CHECKING"
+              name="type"
+            >
+              {Object.entries(accountTypeLabels)
+                .filter(([type]) => hasInstitutionAccount || type !== 'CASH')
+                .map(([type, label]) => (
+                  <option key={type} value={type}>
+                    {label}
+                  </option>
+                ))}
+            </select>
+            <select
+              className="field w-full"
+              defaultValue=""
+              name="institutionId"
+            >
+              <option value="">Selecione a instituição</option>
+              {institutions.map((institution) => (
+                <option key={institution.id} value={institution.id}>
+                  {institution.name}
+                </option>
+              ))}
             </select>
             <input
               className="field w-full"
-              inputMode="decimal"
-              name="balance"
-              placeholder="Saldo inicial (0,00)"
-              required
+              name="customInstitutionName"
+              placeholder="Ou digite uma instituição privada"
             />
-            <Submit label="Adicionar conta" />
+            <input
+              className="field w-full"
+              inputMode="decimal"
+              name="openingBalance"
+              placeholder="Saldo inicial (opcional)"
+            />
+            <Submit
+              label={
+                hasInstitutionAccount
+                  ? 'Adicionar conta'
+                  : 'Criar instituição e conta'
+              }
+            />
           </form>
         </FormCard>
+      </section>
+
+      <section className="mt-7 grid gap-6 lg:grid-cols-2">
         <FormCard title="Nova transação">
           <form action={createTransaction} className="space-y-3">
             <select
               className="field w-full"
               disabled={!accounts.length}
-              name="bankAccountId"
+              name="financialAccountId"
               required
             >
               <option value="">Selecione uma conta</option>
               {accounts.map((account) => (
                 <option key={account.id} value={account.id}>
+                  {account.institution?.name
+                    ? `${account.institution.name} › `
+                    : ''}
                   {account.name}
                 </option>
               ))}
