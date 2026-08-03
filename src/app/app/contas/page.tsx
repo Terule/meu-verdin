@@ -1,4 +1,4 @@
-import { Building2, Plus } from 'lucide-react'
+import { Building2 } from 'lucide-react'
 
 import { calculateBalance } from '@/lib/financial'
 import { formatCurrency } from '@/lib/locale'
@@ -12,6 +12,7 @@ import {
   updateFinancialAccount,
   updatePrivateInstitution,
 } from '@/app/app/actions'
+import { ActionModal } from '@/components/action-modal'
 
 const labels: Record<string, string> = {
   CHECKING: 'Conta corrente',
@@ -120,58 +121,75 @@ export default async function AccountsPage() {
                               <span>{formatCurrency(accountBalance)}</span>
                             </div>
                           </summary>
-                          <div className="mt-4 grid gap-3 border-t border-border/60 pt-3 sm:grid-cols-2">
-                            <form
-                              action={updateFinancialAccount}
-                              className="space-y-2"
+                          <div className="mt-4 flex gap-3 border-t border-border/60 pt-3">
+                            <ActionModal
+                              title="Editar conta"
+                              triggerLabel="Editar"
+                              variant="secondary"
                             >
-                              <input
-                                name="accountId"
-                                type="hidden"
-                                value={account.id}
-                              />
-                              <input
-                                className="field w-full"
-                                defaultValue={account.name}
-                                name="name"
-                                required
-                              />
-                              <select
-                                className="field w-full"
-                                defaultValue={account.type}
-                                name="type"
+                              <form
+                                action={updateFinancialAccount}
+                                className="space-y-2"
                               >
-                                {Object.entries(labels)
-                                  .filter(
-                                    ([type]) =>
-                                      account.institutionId || type === 'CASH',
-                                  )
-                                  .map(([type, label]) => (
-                                    <option key={type} value={type}>
-                                      {label}
-                                    </option>
-                                  ))}
-                              </select>
-                              <button
-                                className="primary-button w-full"
-                                type="submit"
-                              >
-                                Salvar conta
-                              </button>
-                            </form>
-                            <form action={deleteFinancialAccount}>
-                              <input
-                                name="accountId"
-                                type="hidden"
-                                value={account.id}
-                              />
-                              <button
-                                className="secondary-button w-full"
-                                type="submit"
-                              >
-                                Excluir conta
-                              </button>
-                            </form>
+                                <input
+                                  name="accountId"
+                                  type="hidden"
+                                  value={account.id}
+                                />
+                                <input
+                                  className="field w-full"
+                                  defaultValue={account.name}
+                                  name="name"
+                                  required
+                                />
+                                <select
+                                  className="field w-full"
+                                  defaultValue={account.type}
+                                  name="type"
+                                >
+                                  {Object.entries(labels)
+                                    .filter(
+                                      ([type]) =>
+                                        account.institutionId ||
+                                        type === 'CASH',
+                                    )
+                                    .map(([type, label]) => (
+                                      <option key={type} value={type}>
+                                        {label}
+                                      </option>
+                                    ))}
+                                </select>
+                                <button
+                                  className="primary-button w-full"
+                                  type="submit"
+                                >
+                                  Salvar conta
+                                </button>
+                              </form>
+                            </ActionModal>
+                            <ActionModal
+                              title="Excluir conta"
+                              triggerLabel="Excluir"
+                              variant="danger"
+                            >
+                              <p className="mb-4 text-sm text-muted-foreground">
+                                A conta só pode ser removida quando não possui
+                                lançamentos.
+                              </p>
+                              <form action={deleteFinancialAccount}>
+                                <input
+                                  name="accountId"
+                                  type="hidden"
+                                  value={account.id}
+                                />
+                                <button
+                                  className="primary-button w-full"
+                                  type="submit"
+                                >
+                                  Confirmar exclusão
+                                </button>
+                              </form>
+                            </ActionModal>
                           </div>
                         </details>
                       )
@@ -181,39 +199,58 @@ export default async function AccountsPage() {
                         <summary className="cursor-pointer text-muted-foreground">
                           Gerenciar instituição privada
                         </summary>
-                        <div className="mt-3 grid gap-2 sm:grid-cols-2">
-                          <form
-                            action={updatePrivateInstitution}
-                            className="flex gap-2"
+                        <div className="mt-3 flex gap-2">
+                          <ActionModal
+                            title="Editar instituição"
+                            triggerLabel="Editar"
+                            variant="secondary"
                           >
-                            <input
-                              name="institutionId"
-                              type="hidden"
-                              value={institution.id}
-                            />
-                            <input
-                              className="field min-w-0 flex-1"
-                              defaultValue={institution.name}
-                              name="name"
-                              required
-                            />
-                            <button className="secondary-button" type="submit">
-                              Salvar
-                            </button>
-                          </form>
-                          <form action={deletePrivateInstitution}>
-                            <input
-                              name="institutionId"
-                              type="hidden"
-                              value={institution.id}
-                            />
-                            <button
-                              className="secondary-button w-full"
-                              type="submit"
+                            <form
+                              action={updatePrivateInstitution}
+                              className="space-y-2"
                             >
-                              Excluir instituição
-                            </button>
-                          </form>
+                              <input
+                                name="institutionId"
+                                type="hidden"
+                                value={institution.id}
+                              />
+                              <input
+                                className="field min-w-0 flex-1"
+                                defaultValue={institution.name}
+                                name="name"
+                                required
+                              />
+                              <button
+                                className="primary-button w-full"
+                                type="submit"
+                              >
+                                Salvar
+                              </button>
+                            </form>
+                          </ActionModal>
+                          <ActionModal
+                            title="Excluir instituição"
+                            triggerLabel="Excluir"
+                            variant="danger"
+                          >
+                            <p className="mb-4 text-sm text-muted-foreground">
+                              A instituição precisa estar sem contas para ser
+                              removida.
+                            </p>
+                            <form action={deletePrivateInstitution}>
+                              <input
+                                name="institutionId"
+                                type="hidden"
+                                value={institution.id}
+                              />
+                              <button
+                                className="primary-button w-full"
+                                type="submit"
+                              >
+                                Confirmar exclusão
+                              </button>
+                            </form>
+                          </ActionModal>
                         </div>
                       </details>
                     ) : null}
@@ -227,15 +264,16 @@ export default async function AccountsPage() {
             </p>
           )}
         </section>
-        <section className="glass-card h-fit p-5">
-          <div className="mb-4 flex items-center gap-2">
-            <Plus className="size-4 text-primary" />
-            <h2 className="font-display font-bold">
-              {hasInstitutionAccount
-                ? 'Adicionar conta'
-                : 'Primeira instituição'}
-            </h2>
-          </div>
+        <ActionModal
+          title={
+            hasInstitutionAccount
+              ? 'Adicionar conta'
+              : 'Criar instituição e conta'
+          }
+          triggerLabel={
+            hasInstitutionAccount ? 'Adicionar conta' : 'Criar primeira conta'
+          }
+        >
           <form action={createFinancialAccount} className="space-y-3">
             <input
               className="field w-full"
@@ -285,7 +323,7 @@ export default async function AccountsPage() {
                 : 'Criar instituição e conta'}
             </button>
           </form>
-        </section>
+        </ActionModal>
       </div>
     </div>
   )

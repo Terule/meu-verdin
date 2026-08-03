@@ -2,6 +2,7 @@ import prisma from '@/lib/prisma'
 import { requireUser } from '@/lib/session'
 
 import { createCategory, deleteCategory } from '@/app/app/actions'
+import { ActionModal } from '@/components/action-modal'
 
 export default async function CategoriesPage() {
   const user = await requireUser()
@@ -9,20 +10,20 @@ export default async function CategoriesPage() {
     where: { OR: [{ userId: null }, { userId: user.id }] },
     orderBy: [{ type: 'asc' }, { userId: 'asc' }, { name: 'asc' }],
   })
-  const expenses = categories.filter((category) => category.type === 'EXPENSE')
-  const income = categories.filter((category) => category.type === 'INCOME')
   return (
     <div className="mx-auto w-full max-w-[1400px]">
-      <header className="mb-8">
-        <p className="text-sm text-muted-foreground">
-          Classifique seus lançamentos
-        </p>
-        <h1 className="font-display text-3xl font-bold">Categorias</h1>
-      </header>
-      <div className="grid gap-6 xl:grid-cols-[360px_1fr]">
-        <section className="glass-card h-fit p-5">
-          <h2 className="font-display font-bold">Nova categoria</h2>
-          <form action={createCategory} className="mt-4 space-y-3">
+      <header className="mb-8 flex items-end justify-between gap-4">
+        <div>
+          <p className="text-sm text-muted-foreground">
+            Classifique seus lançamentos
+          </p>
+          <h1 className="font-display text-3xl font-bold">Categorias</h1>
+        </div>
+        <ActionModal
+          title="Adicionar categoria"
+          triggerLabel="Adicionar categoria"
+        >
+          <form action={createCategory} className="space-y-3">
             <input
               className="field w-full"
               name="name"
@@ -37,16 +38,25 @@ export default async function CategoriesPage() {
               Adicionar categoria
             </button>
           </form>
-        </section>
-        <section className="grid gap-6 lg:grid-cols-2">
-          <CategoryList categories={expenses} title="Despesas" />
-          <CategoryList categories={income} title="Receitas" />
-        </section>
-      </div>
+        </ActionModal>
+      </header>
+      <section className="grid gap-6 lg:grid-cols-2">
+        <CategoryList
+          categories={categories.filter(
+            (category) => category.type === 'EXPENSE',
+          )}
+          title="Despesas"
+        />
+        <CategoryList
+          categories={categories.filter(
+            (category) => category.type === 'INCOME',
+          )}
+          title="Receitas"
+        />
+      </section>
     </div>
   )
 }
-
 function CategoryList({
   categories,
   title,
@@ -65,15 +75,21 @@ function CategoryList({
           >
             <span>{category.name}</span>
             {category.userId ? (
-              <form action={deleteCategory}>
-                <input name="categoryId" type="hidden" value={category.id} />
-                <button
-                  className="text-sm font-semibold text-destructive"
-                  type="submit"
-                >
-                  Excluir
-                </button>
-              </form>
+              <ActionModal
+                title="Excluir categoria"
+                triggerLabel="Excluir"
+                variant="danger"
+              >
+                <p className="mb-4 text-sm text-muted-foreground">
+                  Esta ação não pode ser desfeita.
+                </p>
+                <form action={deleteCategory}>
+                  <input name="categoryId" type="hidden" value={category.id} />
+                  <button className="primary-button w-full" type="submit">
+                    Confirmar exclusão
+                  </button>
+                </form>
+              </ActionModal>
             ) : (
               <span className="text-xs text-muted-foreground">Padrão</span>
             )}

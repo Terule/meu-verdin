@@ -1,10 +1,9 @@
-import { Plus } from 'lucide-react'
-
 import { formatCurrency, formatDate, getMonthRange } from '@/lib/locale'
 import prisma from '@/lib/prisma'
 import { requireUser } from '@/lib/session'
 
 import { createTransaction } from '@/app/app/actions'
+import { ActionModal } from '@/components/action-modal'
 
 export default async function TransactionsPage() {
   const user = await requireUser()
@@ -34,107 +33,106 @@ export default async function TransactionsPage() {
   ])
   return (
     <div className="mx-auto w-full max-w-[1400px]">
-      <header className="mb-8">
-        <p className="text-sm text-muted-foreground">Movimente suas contas</p>
-        <h1 className="font-display text-3xl font-bold">Lançamentos</h1>
+      <header className="mb-8 flex items-end justify-between gap-4">
+        <div>
+          <p className="text-sm text-muted-foreground">Movimente suas contas</p>
+          <h1 className="font-display text-3xl font-bold">Lançamentos</h1>
+        </div>
+        {accounts.length ? (
+          <ActionModal
+            description="Registre uma receita ou despesa."
+            title="Adicionar lançamento"
+            triggerLabel="Adicionar lançamento"
+          >
+            <form action={createTransaction} className="space-y-3">
+              <select
+                className="field w-full"
+                name="financialAccountId"
+                required
+              >
+                <option value="">Selecione a conta</option>
+                {accounts.map((account) => (
+                  <option key={account.id} value={account.id}>
+                    {account.institution?.name
+                      ? `${account.institution.name} › `
+                      : ''}
+                    {account.name}
+                  </option>
+                ))}
+              </select>
+              <select className="field w-full" name="categoryId" required>
+                <option value="">Selecione a categoria</option>
+                {categories.map((category) => (
+                  <option key={category.id} value={category.id}>
+                    {category.name}
+                  </option>
+                ))}
+              </select>
+              <input
+                className="field w-full"
+                inputMode="decimal"
+                name="amount"
+                placeholder="Valor"
+                required
+              />
+              <input
+                className="field w-full"
+                defaultValue={new Date().toISOString().slice(0, 10)}
+                name="date"
+                required
+                type="date"
+              />
+              <input
+                className="field w-full"
+                name="description"
+                placeholder="Descrição (opcional)"
+              />
+              <button className="primary-button w-full" type="submit">
+                Registrar
+              </button>
+            </form>
+          </ActionModal>
+        ) : null}
       </header>
-      <div className="grid gap-6 xl:grid-cols-[360px_1fr]">
-        <section className="glass-card h-fit p-5">
-          <div className="mb-4 flex items-center gap-2">
-            <Plus className="size-4 text-primary" />
-            <h2 className="font-display font-bold">Novo lançamento</h2>
-          </div>
-          <form action={createTransaction} className="space-y-3">
-            <select
-              className="field w-full"
-              disabled={!accounts.length}
-              name="financialAccountId"
-              required
-            >
-              <option value="">Selecione a conta</option>
-              {accounts.map((account) => (
-                <option key={account.id} value={account.id}>
-                  {account.institution?.name
-                    ? `${account.institution.name} › `
-                    : ''}
-                  {account.name}
-                </option>
-              ))}
-            </select>
-            <select className="field w-full" name="categoryId" required>
-              <option value="">Selecione a categoria</option>
-              {categories.map((category) => (
-                <option key={category.id} value={category.id}>
-                  {category.name}
-                </option>
-              ))}
-            </select>
-            <input
-              className="field w-full"
-              inputMode="decimal"
-              name="amount"
-              placeholder="Valor"
-              required
-            />
-            <input
-              className="field w-full"
-              defaultValue={new Date().toISOString().slice(0, 10)}
-              name="date"
-              required
-              type="date"
-            />
-            <input
-              className="field w-full"
-              name="description"
-              placeholder="Descrição (opcional)"
-            />
-            <button
-              className="primary-button w-full"
-              disabled={!accounts.length}
-              type="submit"
-            >
-              Registrar
-            </button>
-          </form>
-        </section>
-        <section className="glass-card p-5 sm:p-6">
-          <h2 className="font-display text-xl font-bold">Este mês</h2>
-          {transactions.length ? (
-            <div className="mt-4 divide-y divide-border/60">
-              {transactions.map((item) => (
-                <div
-                  className="flex items-center justify-between gap-4 py-4"
-                  key={item.id}
-                >
-                  <div>
-                    <p className="font-medium">
-                      {item.description || item.category?.name}
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      {item.financialAccount.institution?.name
-                        ? `${item.financialAccount.institution.name} › `
-                        : ''}
-                      {item.financialAccount.name} · {formatDate(item.date)}
-                    </p>
-                  </div>
-                  <strong
-                    className={
-                      item.category?.type === 'INCOME' ? 'text-primary' : ''
-                    }
-                  >
-                    {item.category?.type === 'INCOME' ? '+' : '−'}{' '}
-                    {formatCurrency(item.amount)}
-                  </strong>
+      <section className="glass-card p-5 sm:p-6">
+        <h2 className="font-display text-xl font-bold">Este mês</h2>
+        {transactions.length ? (
+          <div className="mt-4 divide-y divide-border/60">
+            {transactions.map((item) => (
+              <div
+                className="flex items-center justify-between gap-4 py-4"
+                key={item.id}
+              >
+                <div>
+                  <p className="font-medium">
+                    {item.description || item.category?.name}
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    {item.financialAccount.institution?.name
+                      ? `${item.financialAccount.institution.name} › `
+                      : ''}
+                    {item.financialAccount.name} · {formatDate(item.date)}
+                  </p>
                 </div>
-              ))}
-            </div>
-          ) : (
-            <p className="mt-5 rounded-2xl bg-muted/60 p-4 text-sm text-muted-foreground">
-              Nenhum lançamento neste mês.
-            </p>
-          )}
-        </section>
-      </div>
+                <strong
+                  className={
+                    item.category?.type === 'INCOME' ? 'text-primary' : ''
+                  }
+                >
+                  {item.category?.type === 'INCOME' ? '+' : '−'}{' '}
+                  {formatCurrency(item.amount)}
+                </strong>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="mt-5 rounded-2xl bg-muted/60 p-4 text-sm text-muted-foreground">
+            {accounts.length
+              ? 'Nenhum lançamento neste mês.'
+              : 'Cadastre uma conta antes de registrar lançamentos.'}
+          </p>
+        )}
+      </section>
     </div>
   )
 }
