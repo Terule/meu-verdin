@@ -15,7 +15,7 @@ import {
 import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 import { SignOutButton } from '@/components/sign-out-button'
 import { ThemeToggle } from '@/components/theme-toggle'
@@ -37,11 +37,38 @@ type SidebarUser = {
 
 function initials(name: string) {
   return name
-    .split(' ')
+    .trim()
+    .split(/\s+/)
     .slice(0, 2)
     .map((part) => part[0])
     .join('')
     .toUpperCase()
+}
+
+function shortName(name: string) {
+  return name.trim().split(/\s+/).slice(0, 2).join(' ') || 'Usuário'
+}
+
+function UserAvatar({ user }: { user: SidebarUser }) {
+  const [imageFailed, setImageFailed] = useState(false)
+  const showImage = Boolean(user.image) && !imageFailed
+
+  return (
+    <span className="relative grid size-9 shrink-0 place-items-center overflow-hidden rounded-full bg-primary/15 text-xs font-bold text-primary">
+      {showImage ? (
+        <Image
+          alt=""
+          className="size-full object-cover"
+          fill
+          onError={() => setImageFailed(true)}
+          sizes="36px"
+          src={user.image as string}
+        />
+      ) : (
+        initials(user.name)
+      )}
+    </span>
+  )
 }
 
 function SidebarContent({
@@ -54,10 +81,37 @@ function SidebarContent({
   user: SidebarUser
 }) {
   const pathname = usePathname()
+  const [profileMenuOpen, setProfileMenuOpen] = useState(false)
+  const profileMenuRef = useRef<HTMLDivElement>(null)
+  const profileButtonRef = useRef<HTMLButtonElement>(null)
   const plan =
     user.subscriptionPlan === 'FREE' || !user.subscriptionPlan
       ? 'Gratuito'
       : user.subscriptionPlan
+
+  useEffect(() => {
+    if (!profileMenuOpen) return
+
+    function closeOnOutsideClick(event: MouseEvent) {
+      if (!profileMenuRef.current?.contains(event.target as Node)) {
+        setProfileMenuOpen(false)
+      }
+    }
+
+    function closeOnEscape(event: KeyboardEvent) {
+      if (event.key !== 'Escape') return
+      setProfileMenuOpen(false)
+      profileButtonRef.current?.focus()
+    }
+
+    document.addEventListener('mousedown', closeOnOutsideClick)
+    document.addEventListener('keydown', closeOnEscape)
+    return () => {
+      document.removeEventListener('mousedown', closeOnOutsideClick)
+      document.removeEventListener('keydown', closeOnEscape)
+    }
+  }, [profileMenuOpen])
+
   return (
     <>
       <div className="flex h-16 items-center gap-3 px-4">
@@ -79,7 +133,7 @@ function SidebarContent({
             <Link
               aria-current={active ? 'page' : undefined}
               aria-label={item.label}
-              className={`group flex h-11 items-center gap-3 rounded-xl px-3 text-sm font-medium transition ${active ? 'bg-sidebar-accent text-sidebar-accent-foreground' : 'text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'}`}
+              className={`group text-sm font-medium transition ${collapsed ? 'mx-auto grid size-11 place-items-center rounded-xl' : 'flex h-11 items-center gap-3 rounded-xl px-3'} ${active ? 'bg-sidebar-accent text-sidebar-accent-foreground' : 'text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'}`}
               href={item.href}
               key={item.href}
               onClick={onNavigate}
@@ -91,32 +145,47 @@ function SidebarContent({
           )
         })}
       </nav>
-      <div className="border-t border-sidebar-border p-3">
-        <div className="mb-3 flex items-center gap-2">
-          <ThemeToggle />
-          <SignOutButton />
-        </div>
-        <div className="flex items-center gap-3 rounded-xl px-2 py-2">
-          <div className="relative grid size-9 shrink-0 place-items-center overflow-hidden rounded-full bg-primary/15 text-xs font-bold text-primary">
-            {user.image ? (
-              <Image
-                alt=""
-                className="size-full object-cover"
-                fill
-                sizes="36px"
-                src={user.image}
-              />
-            ) : (
-              initials(user.name)
-            )}
-          </div>
-          {!collapsed ? (
-            <div className="min-w-0">
-              <p className="truncate text-sm font-semibold">{user.name}</p>
-              <p className="text-xs text-sidebar-foreground/60">{plan}</p>
+      <div
+        className="relative border-t border-sidebar-border p-3"
+        ref={profileMenuRef}
+      >
+        {profileMenuOpen ? (
+          <div
+            aria-label="Menu do perfil"
+            className="absolute bottom-full left-3 right-3 z-20 mb-2 rounded-xl border border-sidebar-border bg-sidebar p-2 shadow-xl"
+            id="profile-menu"
+            role="menu"
+          >
+            <div className="flex items-center justify-between gap-3 px-2 py-1">
+              <span className="text-sm font-medium">Tema</span>
+              <ThemeToggle />
             </div>
+            <div className="mt-1 border-t border-sidebar-border pt-1">
+              <SignOutButton />
+            </div>
+          </div>
+        ) : null}
+        <button
+          aria-controls="profile-menu"
+          aria-expanded={profileMenuOpen}
+          aria-haspopup="menu"
+          className={`flex w-full items-center rounded-xl py-2 transition hover:bg-sidebar-accent ${collapsed ? 'justify-center px-0' : 'gap-3 px-2 text-left'}`}
+          onClick={() => setProfileMenuOpen((open) => !open)}
+          ref={profileButtonRef}
+          type="button"
+        >
+          <UserAvatar user={user} />
+          {!collapsed ? (
+            <span className="min-w-0">
+              <span className="block truncate text-sm font-semibold">
+                {shortName(user.name)}
+              </span>
+              <span className="block text-xs text-sidebar-foreground/60">
+                {plan}
+              </span>
+            </span>
           ) : null}
-        </div>
+        </button>
       </div>
     </>
   )
