@@ -30,6 +30,10 @@ const navigation = [
 ]
 
 const sidebarSpring = { damping: 26, stiffness: 260, type: 'spring' } as const
+const sidebarTransition = {
+  duration: 0.24,
+  ease: [0.22, 1, 0.36, 1],
+} as const
 const contentTransition = {
   duration: 0.18,
   ease: [0.22, 1, 0.36, 1],
@@ -319,7 +323,7 @@ export function AppSidebar({ user }: { user: SidebarUser }) {
               className="fixed inset-y-0 left-0 z-50 flex w-72 flex-col bg-sidebar text-sidebar-foreground shadow-2xl md:hidden"
               exit={{ x: '-100%' }}
               initial={{ x: '-100%' }}
-              transition={reduceMotion ? { duration: 0 } : sidebarSpring}
+              transition={reduceMotion ? { duration: 0 } : sidebarTransition}
             >
               <button
                 aria-label="Fechar navegação"
