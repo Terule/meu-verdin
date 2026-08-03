@@ -13,7 +13,6 @@ import {
   X,
 } from 'lucide-react'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
-import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
@@ -64,12 +63,11 @@ function UserAvatar({ user }: { user: SidebarUser }) {
   return (
     <span className="relative grid size-9 shrink-0 place-items-center overflow-hidden rounded-full bg-primary/15 text-xs font-bold text-primary">
       {showImage ? (
-        <Image
+        // biome-ignore lint/performance/noImgElement: OAuth avatars are user-provided remote images and need an immediate fallback.
+        <img
           alt=""
           className="size-full object-cover"
-          fill
           onError={() => setImageFailed(true)}
-          sizes="36px"
           src={user.image as string}
         />
       ) : (
