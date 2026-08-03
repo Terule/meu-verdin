@@ -2,6 +2,7 @@ import prisma from '@/lib/prisma'
 import { requireUser } from '@/lib/session'
 
 import { AppSidebar } from '@/components/app-sidebar'
+import { MobileBackButton } from '@/components/mobile-back-button'
 import { QueryProvider } from '@/components/query-provider'
 
 export default async function AppLayout({
@@ -25,6 +26,7 @@ export default async function AppLayout({
             subscriptionPlan: profile?.subscriptionPlan ?? 'FREE',
           }}
         />
+        <MobileBackButton />
         <main className="min-w-0 flex-1 px-5 pb-8 pt-20 md:px-8 md:pt-8 xl:px-12">
           {children}
         </main>
