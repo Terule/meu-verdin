@@ -8,6 +8,14 @@ on:
 jobs:
   verify:
     runs-on: ubuntu-latest
+    # These values are build-only placeholders. CI never connects to the
+    # database or performs OAuth, and production credentials stay in Coolify.
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/meu_verdin?schema=public
+      BETTER_AUTH_SECRET: ci-build-only-secret-with-at-least-32-characters
+      BETTER_AUTH_URL: http://localhost:3000
+      GOOGLE_CLIENT_ID: ci-build-only-google-client-id
+      GOOGLE_CLIENT_SECRET: ci-build-only-google-client-secret
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
